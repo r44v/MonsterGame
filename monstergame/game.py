@@ -155,7 +155,7 @@ class Corpse(GameObject):
         super().__init__(x, y, self._WIDTH, self._HEIGHT)
 
     def update(self):
-        super.update()
+        super().update()
 
     def draw(self):
         pyxel.blt(
