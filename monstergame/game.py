@@ -77,5 +77,12 @@ class App:
             str(f"Score {self.game_objects.score}"), # displayed text as string
             7               # text color
             )
+        
+        pyxel.text(
+            50,             # x-position of the text
+            5,              # y position of the text
+            str(f"Enemies {len([e for e in self.game_objects.objects if isinstance(e, Enemy)])}"), # displayed text as string
+            7               # text color
+            )
 
 App()

@@ -21,7 +21,7 @@ class GameContainer:
     def get_object_around_vector(self, vector, margin=1):
         valid = []
         for obj in self.objects:
-            if Utils.point_in_box(obj.box.center, Box(
+            if Utils.box_collision_check_efficient(obj.box, Box(
                 vector.x - margin,
                 vector.y - margin,
                 margin + margin,
@@ -82,10 +82,7 @@ class GameObject:
         pass
 
     def collision(self, object_box: Box) -> bool:
-        return (
-            Utils.box_collision_check(self.box, object_box) or
-            Utils.box_collision_check(object_box, self.box)
-            )
+        return Utils.box_collision_check_efficient(self.box, object_box)
 
 
 class Monster(GameObject, EventObserver):
@@ -175,18 +172,14 @@ class Enemy(GameObject, EventObserver):
     def __init__(self, game, x, y):
         self.move_counter = 0
         self.move_vector = Vector(0, 0)
-        # self.collided_with = set()
         super().__init__(game,x, y, 5, 8)
 
     def update(self):
         if self.move_counter >= 10:
-            # self.move_vector = Vector(random.randint(-2,2), random.randint(-2,2))
+            self.move_vector = Vector(random.randint(-2,2), random.randint(-2,2))
             self.move_counter = 0
-        
-        self.move(self.move_vector.x, self.move_vector.y)
         self.move_counter += 1
-
-        self.move_vector = Vector(0, 0)
+        self.move(self.move_vector.x, self.move_vector.y)
         super().update()
 
     def draw(self):
@@ -204,30 +197,23 @@ class Enemy(GameObject, EventObserver):
 
     def move(self, x, y):
         box = self.box.copy()
-        box.move_to(self.pos.copy().move(x, y))
-        print(box)
+        p = self.pos.copy().move(x, y)
+        box.move_to(p)
         can_move = True
         for obj in self.game.get_object_around_vector(box.center, Config.COLLISION_MARGIN):
-            if isinstance(obj, Monster) and obj.collision(box):
-                self.game.score -= 1
-                self.game.objects.remove(self)
-            if obj.is_wall and obj.collision(box):
-                can_move = False
+            if isinstance(obj, Monster) or obj.is_wall:
+                collision = Utils.box_collision_check_efficient(obj.box, box)
+                if isinstance(obj, Monster) and collision:
+                    self.game.score -= 1
+                    self.game.objects.remove(self)
+                if obj.is_wall and collision:
+                    can_move = False
         
         if can_move:
             self.pos.move(x,y)
 
     def react(self, event: Event):
-        speed = 4
-
-        if isinstance(event, EventUp):
-            self.move_vector.move(0, -1 * speed)
-        if isinstance(event, EventDown):
-            self.move_vector.move(0, speed)
-        if isinstance(event, EventLeft):
-            self.move_vector.move(-1 * speed, 0)
-        if isinstance(event, EventRight):
-            self.move_vector.move(speed, 0)
+        pass
 
 
 class Corpse(GameObject):
