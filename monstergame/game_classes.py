@@ -152,6 +152,7 @@ class Enemy(GameObject, EventObserver):
         for obj in self.game.objects:
             if isinstance(obj, Monster) and obj.collision(self.box):
                 self.game.score -= 1
+                self.game.objects.remove(self)
 
 
         super().update()

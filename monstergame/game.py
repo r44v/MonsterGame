@@ -7,6 +7,12 @@ from .game_events import EventUp, EventDown, EventLeft, EventRight
 from .utility_classes import Box, Vector, Event
 
 
+"""
+TODO
+
+- [ ] GameContainer has collisions list for each object
+"""
+
 class App:
     def __init__(self):
         pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT)
