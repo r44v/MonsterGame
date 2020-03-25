@@ -1,6 +1,6 @@
 # MonsterGame
 
-This repo server as an test project for making a pixel based game with pyxel.
+This repo serves as an test project for making a pixel based game with pyxel.
 
 to start the game install `pyxel`
 

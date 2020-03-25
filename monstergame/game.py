@@ -1,13 +1,10 @@
 import pyxel
 import math
 import random
-
-from .utility_classes import Position, Box, Vector
-
-# Max screen size 256*256
-SCREEN_WIDTH = 256
-SCREEN_HEIGHT = 256
-DEBUG = True
+from .config import SCREEN_HEIGHT, SCREEN_WIDTH, DEBUG
+from .game_classes import GameContainer, GameObject, Boundary, Corpse, Monster, Enemy
+from .game_events import EventUp, EventDown, EventLeft, EventRight
+from .utility_classes import Box, Vector, Event
 
 
 class App:
@@ -15,27 +12,42 @@ class App:
         pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT)
         pyxel.load("assets.pyxres")
 
-        self.game_objects = [
-            Monster(100, 100),
-            Corpse(random.randint(10,246), random.randint(10,246)),
-            Corpse(248,1)
-        ]
+        self.game_objects = GameContainer()
+        monster = Monster(self.game_objects, 100, 100)
+        self.game_objects.add(monster)
+        self.game_objects.add(Corpse(self.game_objects, random.randint(10,246), random.randint(10,246)))
+        self.game_objects.add(Corpse(self.game_objects, 248,1))
+        self.game_objects.add(Enemy(self.game_objects, random.randint(16,256-16), 256-32))
+        for i in range(0,256, 8):
+            self.game_objects.add(Boundary(self.game_objects, i, 16, 8, 8))
+            self.game_objects.add(Boundary(self.game_objects, i, 256-8, 8, 8))
+        for i in range(16,256-8, 8):
+            self.game_objects.add(Boundary(self.game_objects, 0, i, 8, 8))
+            self.game_objects.add(Boundary(self.game_objects, 256-8, i, 8, 8))
 
-        self.score = 0
+        self.events = []
+        for event in [EventUp(), EventDown(), EventLeft(), EventRight()]:
+            event.subscribe(monster)
+            self.events.append(event)
+        
+        self.game_objects.score = 0
 
         pyxel.run(self.update, self.draw)
     
     def update(self):
-        if pyxel.btnp(pyxel.KEY_Q):
-            pyxel.quit()
-        
+
+        # Well yes this is bogus logic    
         monster = self.game_objects[0]
-        for corpse in self.game_objects[1:]:
+        for corpse in self.game_objects[1:3]:
             if monster.collision(corpse.box):
-                self.game_objects[1] = Corpse(random.randint(10,246), random.randint(10,246))
-                self.score += 1
+                self.game_objects[1] = Corpse(self.game_objects, random.randint(16,256-16), random.randint(32,256-16))
+                self.game_objects.score += 1
+                self.game_objects.add(Enemy(self.game_objects, random.randint(16,256-16), 256-32))
+        
+        for event in self.events:
+            event.trigger()
          
-        for obj in self.game_objects:
+        for obj in self.game_objects.objects:
             obj.update()
 
     def draw(self):
@@ -47,146 +59,14 @@ class App:
         pyxel.text(
             5,              # x-position of the text
             5,              # y position of the text
-            str(f"Score {self.score}"), # displayed text as string
+            str(f"Score {self.game_objects.score}"), # displayed text as string
             7               # text color
             )
-        
+
     def _point_in_box(self, point: Vector, box: Box) -> bool:
         if box.u <= point.x <= (box.u + box.w) and box.v <= point.y <= (box.v + box.h):
             return True
         else:
             return False
-
-
-class GameObject:
-    def __init__(self, x: int, y: int, width: int, height: int):
-        self.pos = Position(x, y)
-        self.box = Box(self.pos.x, self.pos.y, width, height)
-    
-    def update(self):
-        pass
-
-    def draw(self):
-        if DEBUG:
-            pyxel.rectb(
-                x=self.box.u,
-                y=self.box.v,
-                w=self.box.w,
-                h=self.box.h,
-                col=pyxel.COLOR_RED
-            )
-
-    def collision(self, object_box: Box) -> bool:
-        return (self._point_in_box(self.box.left_top_vector, object_box) 
-            or self._point_in_box(self.box.right_top_vector, object_box)
-            or self._point_in_box(self.box.right_bottom_vector, object_box)
-            or self._point_in_box(self.box.left_bottom_vector, object_box))
-
-    def _point_in_box(self, point: Vector, box: Box) -> bool:
-        return (box.u <= point.x <= (box.u + box.w)
-            and box.v <= point.y <= (box.v + box.h))
-
-
-class Monster(GameObject):
-    _WIDTH = 16
-    _HEIGHT = 16
-
-    def __init__(self, x, y):
-        self.animation_state = 0
-        self.animation_count = 0
-        super().__init__(x, y, self._WIDTH, self._HEIGHT)
-
-    def update(self):
-        if pyxel.btn(pyxel.KEY_UP) or pyxel.btn(pyxel.KEY_W):
-            self.pos.y -= 2
-            self._change_animation_state()
-        if pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.KEY_D):
-            self.pos.x += 2
-            self._change_animation_state()
-        if pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(pyxel.KEY_S):
-            self.pos.y += 2
-            self._change_animation_state()
-        if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A):
-            self.pos.x -= 2
-            self._change_animation_state()
-        
-        self.box.move(self.pos)
-
-    def draw(self):
-        if self.animation_state == 0:
-            pyxel.blt(
-                x=self.pos.x,
-                y=self.pos.y,
-                img=0, # image 0,1 or 2
-                u=0,
-                v=16,
-                w=self._WIDTH,
-                h=self._HEIGHT,
-                colkey=0
-                )
-        if self.animation_state == 1:
-            pyxel.blt(
-                x=self.pos.x,
-                y=self.pos.y,
-                img=0, # image 0,1 or 2
-                u=0,
-                v=32,
-                w=self._WIDTH,
-                h=self._HEIGHT,
-                colkey=0
-                )
-        super().draw()
-    
-    def _change_animation_state(self):
-        self.animation_count += 1
-        if self.animation_count > 5:
-            if self.animation_state == 0:
-                self.animation_state = 1
-            else:
-                self.animation_state = 0
-            self.animation_count = 0
-
-
-class Corpse(GameObject):
-    _WIDTH = 16
-    _HEIGHT = 3
-
-    def __init__(self, x, y):
-        super().__init__(x, y, self._WIDTH, self._HEIGHT)
-
-    def update(self):
-        super().update()
-
-    def draw(self):
-        pyxel.blt(
-            x=self.pos.x,
-            y=self.pos.y,
-            img=0,
-            u=0,
-            v=53,
-            w=16,
-            h=3,
-            colkey=0
-            )
-        super().draw()
-
-class Boundary(GameObject):
-    def __init__(self, x, y, width, height):
-        super().__init__(x, y, width, height)
-
-    def update(self):
-        super().update()
-
-    def draw(self):
-        pyxel.blt(
-            x=self.pos.x,
-            y=self.pos.y,
-            img=0,
-            u=0,
-            v=53,
-            w=16,
-            h=3,
-            colkey=0
-            )
 
 App()
