@@ -1,4 +1,4 @@
-import pyxel
+import pyxel # type: ignore
 from .utility_classes import Event, EventObserver
 
 class EventUp(Event):

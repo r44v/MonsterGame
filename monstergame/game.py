@@ -1,7 +1,7 @@
-import pyxel
+import pyxel # type: ignore
 import math
 import random
-from .config import SCREEN_HEIGHT, SCREEN_WIDTH, DEBUG
+from .config import Config
 from .game_classes import GameContainer, GameObject, Boundary, Corpse, Monster, Enemy
 from .game_events import EventUp, EventDown, EventLeft, EventRight
 from .utility_classes import Box, Vector, Event
@@ -11,11 +11,12 @@ from .utility_classes import Box, Vector, Event
 TODO
 
 - [ ] GameContainer has collisions list for each object
+- [ ] User collission detected only for used movement
 """
 
 class App:
     def __init__(self):
-        pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT)
+        pyxel.init(Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT)
         pyxel.load("assets.pyxres")
 
         self.game_objects = GameContainer()
@@ -41,6 +42,8 @@ class App:
         pyxel.run(self.update, self.draw)
     
     def update(self):
+        for obj in self.game_objects.objects:
+            obj.reset()
 
         # Well yes this is bogus logic    
         monster = self.game_objects[0]
@@ -49,6 +52,12 @@ class App:
                 self.game_objects[1] = Corpse(self.game_objects, random.randint(16,256-16), random.randint(32,256-16))
                 self.game_objects.score += 1
                 self.game_objects.add(Enemy(self.game_objects, random.randint(16,256-16), 256-32))
+        
+        if pyxel.btn(pyxel.KEY_H):
+            enemy = Enemy(self.game_objects, random.randint(16,256-16), 256-32)
+            for e in self.events:
+                e.subscribe(enemy)
+            self.game_objects.add(enemy)
         
         for event in self.events:
             event.trigger()
@@ -68,11 +77,5 @@ class App:
             str(f"Score {self.game_objects.score}"), # displayed text as string
             7               # text color
             )
-
-    def _point_in_box(self, point: Vector, box: Box) -> bool:
-        if box.u <= point.x <= (box.u + box.w) and box.v <= point.y <= (box.v + box.h):
-            return True
-        else:
-            return False
 
 App()
