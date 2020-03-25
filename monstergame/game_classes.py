@@ -18,19 +18,6 @@ class GameContainer:
     def remove(self, obj: 'GameObject'):
         self.objects.remove(obj)
     
-    def get_object_around_vector(self, vector, margin=1):
-        valid = []
-        for obj in self.objects:
-            if Utils.box_collision_check_efficient(obj.box, Box(
-                vector.x - margin,
-                vector.y - margin,
-                margin + margin,
-                margin + margin
-                )):
-                valid.append(obj)
-        
-        return valid
-    
     def __getitem__(self, item):
         return self.objects[item]
     

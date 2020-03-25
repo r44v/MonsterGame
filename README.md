@@ -1,7 +1,6 @@
 # MonsterGame
 
-This repo serves as an test project for making a pixel based game with pyxel.
-
+This rather useless game was used to learn the basics of _pyxel_.
 to start the game install `pyxel`
 
 ```
@@ -13,11 +12,22 @@ Only tested on windows.
 
 ![Image](miscellaneous/image.png)
 
+# Screenshot
+
+![Screenshot](miscellaneous/screenshot.png)
+
+# Goal
+
+1. Eat the corpses
+2. Avoid the enemies
+3. Get 10 points
+4. No enemies == Game Over
+
 # Controls
 
 You can either use the arrow keys or WSAD to move the monster and eating corpses earns you points.
 
-Fun fact eating the corps in the right top corner shows a funny bug.
+Press `ESC` to exit
 
 # Credit
 
