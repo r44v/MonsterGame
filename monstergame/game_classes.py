@@ -125,7 +125,7 @@ class Monster(GameObject, EventObserver):
         def collision_check(x, y):
             box = self.box.copy()
             box.move_to(Vector(self.pos.x + x, self.pos.y + y))
-            for obj in self.game.get_object_around_vector(self.box.center, Config.COLLISION_MARGIN):
+            for obj in self.game.objects:
                 if obj.is_wall and obj.collision(box):
                     return False
             return True
@@ -200,7 +200,7 @@ class Enemy(GameObject, EventObserver):
         p = self.pos.copy().move(x, y)
         box.move_to(p)
         can_move = True
-        for obj in self.game.get_object_around_vector(box.center, Config.COLLISION_MARGIN):
+        for obj in self.game.objects:
             if isinstance(obj, Monster) or obj.is_wall:
                 collision = Utils.box_collision_check_efficient(obj.box, box)
                 if isinstance(obj, Monster) and collision:
