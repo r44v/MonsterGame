@@ -32,3 +32,9 @@ Press `ESC` to exit
 # Credit
 
 Based on the awesome python pixel game engine [kitao/pyxel](https://github.com/kitao/pyxel)
+
+**List of inspirations**
+- https://github.com/paulsheridan/platformer-pyxel
+- https://github.com/timbledum/asteroids
+- https://www.reddit.com/r/pyxel/
+- https://github.com/numbertheory/dungeon-dos

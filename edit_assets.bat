@@ -1,1 +1,1 @@
-%USERPROFILE%\AppData\Local\Programs\Python\Python37\Scripts\pyxeleditor.exe monstergame/assets.pyxres
+.venv\Scripts\pyxeleditor.exe monstergame/assets.pyxres

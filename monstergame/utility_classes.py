@@ -2,13 +2,18 @@ from abc import ABC, abstractmethod
 from typing import Iterator
 
 class Vector:
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
     
-    def move(self, x, y):
+    def move(self, x: int, y: int):
         self.x += x
         self.y += y
+        return self
+    
+    def move_to(self, x: int, y: int):
+        self.x = x
+        self.y = y
         return self
     
     def copy(self):
@@ -37,26 +42,45 @@ class Box:
         self.v = v
         self.w = w
         self.h = h
-
-        self.left_top_vector = Vector(self.u, self.v)
-        self.right_top_vector = Vector(self.u + self.w, v)
-        self.right_bottom_vector = Vector(self.u + self.w, self.v + self.h)
-        self.left_bottom_vector = Vector(self.u, self.v + self.h)
-        self.center = Vector((self.u + self.u + self.w) / 2, (self.v + self.v + self.h) / 2)
-    
-    def move_to(self, vector: Vector):
-        self.u = vector.x
-        self.v = vector.y
-
+        
         self.left_top_vector = Vector(self.u, self.v)
         self.right_top_vector = Vector(self.u + self.w, self.v)
         self.right_bottom_vector = Vector(self.u + self.w, self.v + self.h)
         self.left_bottom_vector = Vector(self.u, self.v + self.h)
         self.center = Vector((self.u + self.u + self.w) / 2, (self.v + self.v + self.h) / 2)
+    
+    def move(self, vector: Vector):
+        self.u += vector.x
+        self.v += vector.y
+        self.__update_meta()
+        
+        return self
+    
+    def move_to(self, vector: Vector):
+        self.u = vector.x
+        self.v = vector.y
+        self.__update_meta()
+        
         return self
     
     def copy(self):
         return Box(self.u, self.v, self.w, self.h)
+    
+    def grow(self, growth: int):
+        self.u = self.u - growth
+        self.v = self.v - growth
+        self.w = self.w + 2 * growth
+        self.h = self.h + 2 * growth
+        self.__update_meta()
+
+        return self
+
+    def __update_meta(self):
+        self.left_top_vector.move_to(self.u, self.v)
+        self.right_top_vector.move_to(self.u + self.w, self.v)
+        self.right_bottom_vector.move_to(self.u + self.w, self.v + self.h)
+        self.left_bottom_vector.move_to(self.u, self.v + self.h)
+        self.center.move_to((self.u + self.u + self.w) / 2, (self.v + self.v + self.h) / 2)
     
     def __repr__(self):
         return f"Box(u: {self.u}, v: {self.v}, w: {self.w}, h: {self.h})"
@@ -118,4 +142,5 @@ class Utils:
         """
         return ((abs(box_a.center.x - box_b.center.x) * 2 < (box_a.w + box_b.w)) and
             (abs(box_a.center.y - box_b.center.y) * 2 < (box_a.h + box_b.h)))
+    
 

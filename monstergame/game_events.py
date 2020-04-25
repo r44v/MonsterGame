@@ -32,3 +32,11 @@ class EventRight(Event):
     def trigger(self):
         if pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.KEY_D):
             self.notify()
+
+class EventSpacebar(Event):
+    def __init__(self):
+        super().__init__()
+    
+    def trigger(self):
+        if pyxel.btn(pyxel.KEY_SPACE):
+            self.notify()

@@ -1,11 +1,13 @@
 import pyxel # type: ignore
 import math
 import random
+from typing import List
 from enum import Enum
 from .config import Config
-from .game_classes import GameContainer, GameObject, Boundary, Corpse, Monster, Enemy
-from .game_events import EventUp, EventDown, EventLeft, EventRight
-from .utility_classes import Box, Vector, Event
+from .levels import level_01, level_02
+from .game_classes import GameContainer, GameObject, Boundary, Corpse, Monster, Enemy, Player, Background, Level
+from .game_events import EventUp, EventDown, EventLeft, EventRight, EventSpacebar
+from .utility_classes import Box, Vector, Event, Utils
 
 
 """
@@ -30,90 +32,115 @@ class App:
         pyxel.run(self.update, self.draw)
     
     def new_game(self):
-        self.game_objects = GameContainer()
-        monster = Monster(self.game_objects, 100, 100)
-        self.game_objects.add(monster)
-        self.game_objects.add(Corpse(self.game_objects, random.randint(16,240), random.randint(32,240)))
-        self.game_objects.add(Enemy(self.game_objects, random.randint(16,256-16), 256-32))
-        for i in range(0,256, 8):
-            self.game_objects.add(Boundary(self.game_objects, i, 16, 8, 8))
-            self.game_objects.add(Boundary(self.game_objects, i, 256-8, 8, 8))
-        for i in range(16,256-8, 8):
-            self.game_objects.add(Boundary(self.game_objects, 0, i, 8, 8))
-            self.game_objects.add(Boundary(self.game_objects, 256-8, i, 8, 8))
-
-        self.events = []
-        for event in [EventUp(), EventDown(), EventLeft(), EventRight()]:
-            event.subscribe(monster)
-            self.events.append(event)
+        self.game = GameContainer()
+        self.game.playable_area = Box(0, 8 , Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT-8)
+        self.events = [EventUp(), EventDown(), EventLeft(), EventRight(), EventSpacebar()]
         
-        self.game_objects.score = 0
-        self.game_state = GameState.PLAYING
+        player = Player(self.game,
+            int((self.game.playable_area.w / 2) - (Player.width / 2)),
+            int((self.game.playable_area.h / 2) - (Player.height / 2))
+            )
+        
+        self.game.set_player(player)
+
+        self.levels: List[Level] = [
+            level_01.Level01(
+                self.game,
+                self.game.playable_area.u,
+                self.game.playable_area.v,
+                self.game.playable_area.w,
+                self.game.playable_area.h
+            ),
+            level_02.Level02(
+                self.game,
+                self.game.playable_area.u + self.game.playable_area.w,
+                self.game.playable_area.v,
+                self.game.playable_area.w,
+                self.game.playable_area.h
+            ),
+            level_02.Level02(
+                self.game,
+                self.game.playable_area.u + self.game.playable_area.w * 2,
+                self.game.playable_area.v,
+                self.game.playable_area.w,
+                self.game.playable_area.h
+            )
+        ]
+
+        for i in range(3, 103):
+            self.levels.append(level_02.Level02(
+                self.game,
+                self.game.playable_area.u + self.game.playable_area.w * i,
+                self.game.playable_area.v,
+                self.game.playable_area.w,
+                self.game.playable_area.h
+            ))
+
+        for event in self.events:
+            event.subscribe(player)
+            for level in self.levels:
+                event.subscribe(level)
     
     def update(self):
-        if self.game_state == GameState.PLAYING:
-            for obj in self.game_objects.objects:
-                obj.reset()
+        player_radius_box = self.game.player.box.copy().grow(Config.COLLISION_MARGIN)
+        self.game.near_objects.clear()
+        for obj in self.game.objects:
+            if Utils.point_in_box(obj.box.copy().move(obj.parent).center, player_radius_box):
+                self.game.near_objects.append(obj)
 
-            monster = self.game_objects[0]
-            corpse = self.game_objects[1]
-            if monster.collision(corpse.box):
-                self.game_objects[1] = Corpse(self.game_objects, random.randint(16,240), random.randint(32,240))
-                self.game_objects.score += 1
-                self.game_objects.add(Enemy(self.game_objects, random.randint(16,256-16), 256-32))
+        for event in self.events:
+            event.trigger()
+
+        if self.game.player.move_vector.x != 0:
+            self.move_sideways(self.game.player.move_vector.x)
+            self.game.player.move_vector.move_to(0, self.game.player.move_vector.y)
         
-            if pyxel.btn(pyxel.KEY_H):
-                enemy = Enemy(self.game_objects, random.randint(16,256-16), 256-32)
-                for e in self.events:
-                    e.subscribe(enemy)
-                self.game_objects.add(enemy)
-            
-            for event in self.events:
-                event.trigger()
-            
-            for obj in self.game_objects.objects:
-                obj.update()
-            
-            if len([e for e in self.game_objects.objects if isinstance(e, Enemy)]) <= 0:
-                self.game_state = GameState.GAME_OVER
-            if self.game_objects.score >= 10:
-                self.game_state = GameState.WON
-        else:
-            if pyxel.btn(pyxel.KEY_N):
-                self.new_game()
-
-
+        self.game.player.update()
+        
+        for level in self.levels:
+            level.update()
+        
+        for obj in self.game.objects:
+            obj.update()
+    
     def draw(self):
         pyxel.cls(0)
-        if self.game_state == GameState.PLAYING:
-            for obj in self.game_objects:
-                obj.draw()
 
-            pyxel.text(
-                5,              # x-position of the text
-                5,              # y position of the text
-                str(f"Score {self.game_objects.score}"), # displayed text as string
-                7               # text color
-                )
-            
-            pyxel.text(
-                50,             # x-position of the text
-                5,              # y position of the text
-                str(f"Enemies {len([e for e in self.game_objects.objects if isinstance(e, Enemy)])}"), # displayed text as string
-                7               # text color
-                )
-        if self.game_state == GameState.WON:
-            pyxel.text(
-                90,
-                120,
-                str(f"Victory, press N for new game"),
-                7
-                )
-        if self.game_state == GameState.GAME_OVER:
-            pyxel.text(
-                90,
-                120,
-                str(f"Game Over, press N for new game"),
-                7
-                )
+        pyxel.line(0, 7, Config.SCREEN_WIDTH, 7, 7)
+
+        pyxel.blt(
+            0,0,0,16,8,8,8,0
+        )
+
+        for level in self.levels:
+            if level.loaded:
+                level.draw()
+        
+        for obj in self.game.objects:
+            obj.draw()
+        
+        self.game.player.draw()
+    
+    def move_sideways(self, x: int):
+        if x == 0:
+            return
+        can_move = True
+        player_moved_box = self.game.player.box.copy().move(Vector(x, 0))
+        for obj in self.game.near_objects:
+            if obj.collision(player_moved_box) and obj.is_wall:
+                can_move = False
+        
+        if can_move:
+            for level in self.levels:
+                level.move(-1 * x)
+            return
+        
+        if (x != 0):
+            if x < 0:
+                x += 1
+            if x > 0:
+                x -= 1
+            self.move_sideways(x)
+
+        
 App()
